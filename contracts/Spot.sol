@@ -4,42 +4,72 @@ import "./ERC20.sol";
 import "./math.sol";
 
 contract Spot is DSMath{
-	struct lock{
-		address		lender;
-		address		borrower;
-		address 	x1;
-		uint 		amountX1;
-		uint		amountEther; 
-		uint 		createdAt;
-	}
-	mapping (address => lock[]) locks;
-
-	address WEth = address(0x0); // Weth address here
+	address[]	borrowers;
+	uint 		public borrLength;
+	address[] 	tokens;
+	uint[]		amountEther; 
+	address[][]	lenders;
+	uint[][]	amounts;
+	uint[] 		lendLength;
+	uint[] 		createdAt;
 
 	event Log(uint a);
 
+	function test() public view returns (uint) {
+		return 21;
+	}
+	function getTraders() public view returns (address[]) {
+		return borrowers;
+	}
+	function getTokens() public view returns (address[]) {
+		return tokens;
+	}
+	function getTradersAmounts() public view returns (uint[]) {
+		return amountEther;
+	}	
+	function getLenders(uint idx) public view returns (address[]) {
+		return lenders[idx];
+	}	
+	function getAmounts(uint idx) public view returns (uint[]) {
+		return amounts[idx];
+	}	
+	function getBorrowersLength() public view returns (uint) {
+		return borrowers.length;
+	}	
+
 	function Lock(
-		address lender, 
 		address	borrower,
+		int 	borrTokIdx,
 		address token, 	
-		uint	ethAmount,
+		uint	x1Amount,
+		address lender,
+		int 	lenderIdx,
 		uint 	rate,		// times 100
 		uint 	fee,		// basis (10000)
 		uint 	margin		// basis
 	) public {
 		require(rate != 0);
-		require(ethAmount > 0);
-		uint x1Amount = 1000000*ethAmount/(rate*(fee + margin));
-		lock memory lk = lock(
-			lender, 
-			borrower, 
-			token,
-			x1Amount, 
-			ethAmount,
-			now
-		);
-		locks[lender].push(lk);
-		locks[borrower].push(lk);
+		require(x1Amount > 0);
+		uint ethAmount = x1Amount*rate*(fee + margin)/1000000;
+		if (borrTokIdx == -1) {
+			addBorrowerLock(
+				borrower,
+				token, 	
+				ethAmount,
+				lender,
+				x1Amount
+			);
+		}
+		else {
+			amountEther[uint(borrTokIdx)] += ethAmount;
+			addLender(
+				uint(borrTokIdx),
+				lender,
+				x1Amount,
+				lenderIdx
+			);
+		}
+
 		// Transfer WETH from borrower to this		
 		// ERC20(WEth).transferFrom(
 		// 	borrower, 
@@ -54,70 +84,80 @@ contract Spot is DSMath{
 		// );
 	}
 	
-	// function BuyToCover(
-	// 	address token, 
-	// 	address borrower,
-	// 	uint 	rate,		// percent 	(100)
-	// 	uint 	fee,		// basis 	(10000)
-	// 	uint 	margin		// basis	(10000)
-	// ) public {
-	// 	lock[] storage locksForToken = locks[token];
-	// 	for (uint i=0; i<locksForToken.length; i++) {
-	// 		if (locksForToken[i].borrower == msg.sender) {
-	// 			require (ERC20(token).allowance(msg.sender, this) >= locksForToken[i].amountX1);
-	// 			ERC20(token).transferFrom(
-	// 				msg.sender, 
-	// 				locksForToken[i].lender, 
-	// 				locksForToken[i].amountX1
-	// 			);
-	// 			// Transfer WETH to borrower from this		
-	// 			ERC20(WEth).transfer(
-	// 				borrower, 
-	// 				locksForToken[i].amountX1*rate*(fee + margin)/1000000
-	// 			);
-	// 			delete locksForToken[i]; // TODO: implement linked list
-	// 		}
-	// 	}
-	// }
+	function BuyToCover(
+		uint borrTokIdx, 
+		uint amount,
+		uint rate,		// percent 	(100)
+		uint fee,		// basis 	(10000)
+		uint margin		// basis	(10000)
+	) public {
+		for (uint i=0; i<lendLength[borrTokIdx]; i++) {
+			if(amount >= amounts[borrTokIdx][i]) {
+				// TODO: Transfer to lender amounts[borrTokIdx][i] 
+				deleteLender(borrTokIdx, i);
+			}
+			else {
+				// TODO: Transfer to lender amount
+				amounts[borrTokIdx][i] -= amount;
+			}
+		}
+		if (lendLength[borrTokIdx] == 0) {
+			deleteBorrowerLock(borrTokIdx);
+		}
+		amountEther[borrTokIdx] -= amount*rate*(fee + margin)/1000000;
+		// TODO: Transfer funds to trader
+	}
 
-	// function SwapLenders(
-	// 	address 	token, 
-	// 	address		lender,
-	// 	address[]	lenders,
-	// 	uint 		rate,		// percent 	(100)
-	// 	uint 		fee,		// basis 	(10000)
-	// 	uint 		margin		// basis		(10000)) 
-	// ) public {
-	// 	lock[] storage locksForToken = locks[token];
-	// 	for (uint i=0; i<locksForToken.length; i++) {
-	// 		if (locksForToken[i].lender == lender) {
-	// 			for (uint j=0; j<lenders.length; j++) {
-	// 				uint allowance = ERC20(token).allowance(
-	// 					lenders[j], 
-	// 					this
-	// 				);
-	// 				if (allowance > 0) {
-	// 					uint x1ToTransfer = min(allowance, locksForToken[i].amountX1);
-	// 					uint etherToTransfer = x1ToTransfer*rate*(fee + margin)/1000000;
-	// 					locksForToken[i].amountX1 -= x1ToTransfer;
-	// 					locksForToken[i].amountEther -= etherToTransfer;
-	// 					locks[token].push(lock(
-	// 						lenders[j], 
-	// 						locksForToken[i].borrower, 
-	// 						x1ToTransfer, 
-	// 						etherToTransfer
-	// 					));
-	// 					// Transfer X1 from new lender to old
-	// 					ERC20(token).transferFrom(
-	// 						lenders[j], 
-	// 						lender, 
-	// 						x1ToTransfer
-	// 					);
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
+	function Swap(
+		uint[]		borrTokIdx,
+		uint[]		lenderIdx,
+		address[]	newLenders,
+		int[]		newLendersIdx,
+		uint[] 		amts
+	) public {
+		for (uint i=0; i<borrTokIdx.length; i++) {
+			for (uint j=0; j<newLenders.length; j++) {
+				uint amt = amounts[borrTokIdx[i]][lenderIdx[i]];
+				if (amts[j] >= amt) {
+					lenders[borrTokIdx[i]][lenderIdx[i]] = newLenders[j];
+					amts[j] -= amt;
+					// TODO: Transfer X1 
+					break;
+				}
+				else {
+					amounts[borrTokIdx[i]][lenderIdx[i]] -= amts[j];
+					addLender(
+						borrTokIdx[i],
+						newLenders[j],
+						amts[j],
+						newLendersIdx[j]
+					);
+					amts[j] = 0;
+					// TODO: Transfer X1 
+				}
+			}
+		}
+	}
+
+	function Recall(
+		uint[]		borrTokIdx,
+		uint[]		lenderIdx,
+		uint 		amount
+	) public {
+		for(uint i=0; i<borrTokIdx.length; i++){
+			for(uint j=0; j<lenderIdx.length; j++){
+				// TODO: Save info about funds to transfer				
+				if (amount < amounts[borrTokIdx[i]][lenderIdx[j]]) {
+					amounts[borrTokIdx[i]][lenderIdx[j]] -= amount;
+				}
+				else {
+					deleteLender(borrTokIdx[i], lenderIdx[j]);
+				}
+				amount -= amounts[borrTokIdx[i]][lenderIdx[j]];
+			}
+		}
+		// TODO: Transfer funds to lender
+	}
 
 	// function MarginCall(
 	// 	address token,
@@ -131,94 +171,86 @@ contract Spot is DSMath{
 	// ) public {
 	// 	bytes32 message = keccak256(rate + fee + margin);
 	// 	require(ecrecover(message, v, r, s) == address(0x0)); // Oracle address here
-	// 	lock[] storage locksForToken = locks[token];
-	// 	for (uint i=0; i<locksForToken.length; i++) {
-	// 		if (locksForToken[i].borrower == borrower) {
-	// 			if(locksForToken[i].amountEther < locksForToken[i].amountX1*rate*(fee + margin)/1000000) {
-	// 				// Send Ether to lender
-	// 				ERC20(WEth).transfer(
-	// 					locksForToken[i].lender, 
-	// 					locksForToken[i].amountEther
-	// 				);
-	// 				delete locksForToken[i];
-	// 			}
-	// 		}
-	// 	}
 	// }
 
-	function getNumberOfLocksForAddress(
-		address user
-	) public view returns (uint) {
-		return locks[user].length;
+	address[] lenderArr;
+	uint[] amtArr;
+	function addBorrowerLock(
+		address	borrower,
+		address token, 	
+		uint	ethAmount,
+		address lender,
+		uint 	x1Amount
+	) internal {
+		lenderArr.push(lender);
+		amtArr.push(x1Amount);
+		if (borrowers.length > borrLength) {
+			borrowers[borrLength] = borrower;
+			tokens[borrLength] = token;
+			amountEther[borrLength] = ethAmount;
+			lenders[borrLength] = lenderArr;
+			amounts[borrLength] = amtArr;
+			lendLength[borrLength] = 1;
+			createdAt[borrLength] = now;
+		}
+		else {
+			borrowers.push(borrower);
+			tokens.push(token);
+			amountEther.push(ethAmount);
+			lenders.push(lenderArr);
+			amounts.push(amtArr);
+			lendLength.push(1);
+			createdAt.push(now);			
+		}
+		borrLength += 1;
 	}
 
-	function getLock(
-		address user,
-		uint 	idx
-	) public view returns (
-		address, 
-		address, 
-		address, 
-		uint, 
-		uint, 
-		uint
-	) {
-		lock memory lk = locks[user][idx];
-		return (
-			lk.lender, 
-			lk.borrower,
-			lk.x1, 
-			lk.amountX1, 
-			lk.amountEther, 
-			lk.createdAt 
-		);
+	function addLender(
+		uint 	borrTokIdx,
+		address lender,
+		uint 	x1Amount,
+		int 	lenderIdx
+	) internal {
+		if (lenderIdx >= 0) {
+			amounts[borrTokIdx][uint(lenderIdx)] += x1Amount;
+		}
+		else {
+			if (lenders[borrTokIdx].length > lendLength[borrTokIdx]) {
+				lenders[borrTokIdx][lendLength[borrTokIdx]] = lender;
+				amounts[borrTokIdx][lendLength[borrTokIdx]] = x1Amount;
+			}
+			else {
+				lenders[borrTokIdx].push(lender);
+				amounts[borrTokIdx].push(x1Amount);
+			}
+			lendLength[borrTokIdx] += 1;
+		}
 	}
 
-	// function getLock(
-	// 	address token, 
-	// 	address lender, 
-	// 	address borrower
-	// ) public view returns (uint, uint) {
-	// 	uint x1Amount;
-	// 	uint etherAmount;
-	// 	lock[] storage locksForToken = locks[token];
-	// 	for (uint i=0; i<locksForToken.length; i++) {
-	// 		if (locksForToken[i].lender == lender && locksForToken[i].borrower == borrower) {
-	// 			x1Amount += locksForToken[i].amountX1;
-	// 			etherAmount += locksForToken[i].amountEther;
-	// 		}
-	// 	}
-	// 	return (x1Amount, etherAmount);
-	// }
+	function deleteLender(
+		uint 	borrTokIdx,
+		uint 	lIdx
+	) internal {
+		uint lastIdx = lendLength[borrTokIdx]-1;
+		lenders[borrTokIdx][lIdx] = lenders[borrTokIdx][lastIdx];
+		amounts[borrTokIdx][lIdx] = amounts[borrTokIdx][lastIdx];
+		lendLength[borrTokIdx] -= 1;
+		if(lendLength[borrTokIdx] == 0) {
+			deleteBorrowerLock(borrTokIdx);
+		}
+	}
 
-	// function getLockLender(
-	// 	address token, 
-	// 	address lender
-	// ) public view returns (uint) {
-	// 	uint x1Amount;
-	// 	lock[] storage locksForToken = locks[token];
-	// 	for (uint i=0; i<locksForToken.length; i++) {
-	// 		if (locksForToken[i].lender == lender) {
-	// 			x1Amount += locksForToken[i].amountX1;
-	// 		}
-	// 	}
-	// 	return x1Amount;
-	// }
+	function deleteBorrowerLock(
+		uint 	borrTokIdx
+	) internal {
+		uint lastIdx = borrLength-1;
+		borrowers[borrTokIdx] = borrowers[lastIdx];
+		tokens[borrTokIdx] = tokens[lastIdx];
+		amountEther[borrTokIdx] = amountEther[lastIdx];
+		lenders[borrTokIdx] = lenders[lastIdx];
+		amounts[borrTokIdx] = amounts[lastIdx];
+		lendLength[borrTokIdx] = lendLength[lastIdx];
+		createdAt[borrTokIdx] = createdAt[lastIdx];
+		borrLength -= 1;
+	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
