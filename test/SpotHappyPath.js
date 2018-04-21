@@ -16,48 +16,68 @@ contract('Approve 10 EOS & Weth tokens, lock and buy to cover', function(account
 	var eosTokenInstance;
 	var wethTokenInstance;
 
-	it("should approve spotnet for 10 EOS tokens", function() {
-		return EosToken.deployed().then(function(instance) {
-			eosTokenInstance = instance;
-			log(eosTokenInstance.address);
-			return Spot.deployed();
-		}).then(function(instance) {
+	it("should test123", function() {
+		return Spot.deployed().then(function(instance) {
 			spotInstance = instance;
-			return WethToken.deployed();
-		}).then(function(instance) {
-			wethTokenInstance = instance;
-			eosTokenInstance.approve(spotInstance.address, 10, {from: lender1});
-			return eosTokenInstance.allowance(lender1, spotInstance.address);
-		}).then(function(data) {
-			assert.equal(data, 10, "eos allowance amount should be " + 10);
-			wethTokenInstance.approve(spotInstance.address, 10, {from: borrower1});
-			return wethTokenInstance.allowance(borrower1, spotInstance.address);
-		}).then(function(data) {
-			assert.equal(data, 10, "weth allowance amount should be " + 10);
+			return spotInstance.Lock(
+				'0x627306090abab3a6e1400e9345bc60c78a8bef57',
+				-1,
+				'0xf328c11c4df88d18fcbd30ad38d8b4714f4b33bf',
+				1,
+				'0x0',
+				-1,
+				100,
+				0,
+				10000,
+				{from: '0x627306090abab3a6e1400e9345bc60c78a8bef57', gas: 3000000}
+			).then(function(data) {
+				console.log('data '+data);
+				// assert.equal(1, 2, "test123  ");
+			});
 		});
 	});
+	// it("should approve spotnet for 10 EOS tokens", function() {
+	// 	return EosToken.deployed().then(function(instance) {
+	// 		eosTokenInstance = instance;
+	// 		log(eosTokenInstance.address);
+	// 		return Spot.deployed();
+	// 	}).then(function(instance) {
+	// 		spotInstance = instance;
+	// 		return WethToken.deployed();
+	// 	}).then(function(instance) {
+	// 		wethTokenInstance = instance;
+	// 		eosTokenInstance.approve(spotInstance.address, 10, {from: lender1});
+	// 		return eosTokenInstance.allowance(lender1, spotInstance.address);
+	// 	}).then(function(data) {
+	// 		assert.equal(data, 10, "eos allowance amount should be " + 10);
+	// 		wethTokenInstance.approve(spotInstance.address, 10, {from: borrower1});
+	// 		return wethTokenInstance.allowance(borrower1, spotInstance.address);
+	// 	}).then(function(data) {
+	// 		assert.equal(data, 10, "weth allowance amount should be " + 10);
+	// 	});
+	// });
 
-	it("should lock", function() {
-		return spotInstance.Lock( 
-			lender1, 
-			borrower1,
-			eosTokenInstance.address,
-			10,
-			100,
-			0,
-			10000,
-			{from: borrower1}
-		).then(function(data) {
-			return spotInstance.getLock(lender1, 0);
-		}).then(function(data) {
-			assert.equal(data[3], 10, "amount of locked Eos should be 10");
-			assert.equal(data[4], 10, "amount of locked Ether should be 10");
-			return wethTokenInstance.balanceOf(borrower1);
-		}).then(function(data) {
-			assert.equal(data, 10, "borrower should have 10 Eos");
-			return WethToken.balanceOf(borrower1);
-		});
-	});
+	// it("should lock", function() {
+	// 	return spotInstance.Lock( 
+	// 		lender1, 
+	// 		borrower1,
+	// 		eosTokenInstance.address,
+	// 		10,
+	// 		100,
+	// 		0,
+	// 		10000,
+	// 		{from: borrower1}
+	// 	).then(function(data) {
+	// 		return spotInstance.getLock(lender1, 0);
+	// 	}).then(function(data) {
+	// 		assert.equal(data[3], 10, "amount of locked Eos should be 10");
+	// 		assert.equal(data[4], 10, "amount of locked Ether should be 10");
+	// 		return wethTokenInstance.balanceOf(borrower1);
+	// 	}).then(function(data) {
+	// 		assert.equal(data, 10, "borrower should have 10 Eos");
+	// 		return WethToken.balanceOf(borrower1);
+	// 	});
+	// });
 
 	// it("should buy to cover", function() {
 	// 	x1TokenInstance.approve(
