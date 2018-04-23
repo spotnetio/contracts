@@ -89,7 +89,7 @@ contract Spot is DSMath{
 	// 	for (uint i=0; i<lendLength[borrTokIdx]; i++) {
 	// 		if(amount >= amounts[borrTokIdx][i]) {
 	// 			// TODO: Transfer to lender amounts[borrTokIdx][i] 
-	// 			deleteLender(borrTokIdx, i);
+	// 			amounts[borrTokIdx][i] = 0;
 	// 		}
 	// 		else {
 	// 			// TODO: Transfer to lender amount
@@ -121,10 +121,7 @@ contract Spot is DSMath{
 						lockedAmt,
 						newLendersIdx[j]
 					);
-					deleteLender(
-						borrTokIdx[i],
-						lenderIdx[i]
-					);	
+					amounts[borrTokIdx[i]][lenderIdx[i]] = 0;	
 					amts[j] -= lockedAmt;
 					// TODO: Transfer X1 
 					break;
@@ -151,12 +148,10 @@ contract Spot is DSMath{
 		uint[] 		amts
 	) public {
 		for(uint i=0; i<borrTokIdx.length; i++){
-			if (amts[i] < amounts[borrTokIdx[i]][lenderIdx[i]]) {
-				amounts[borrTokIdx[i]][lenderIdx[i]] -= amts[i];
-			}
-			else {
-				deleteLender(borrTokIdx[i], lenderIdx[i]);
-			}
+			amounts[borrTokIdx[i]][lenderIdx[i]] -= min(
+				amounts[borrTokIdx[i]][lenderIdx[i]],
+				amts[i]
+			);
 			// TODO: Transfer funds to lender & borrower
 		}
 	}
@@ -175,8 +170,6 @@ contract Spot is DSMath{
 	// 	require(ecrecover(message, v, r, s) == address(0x0)); // Oracle address here
 	// }
 
-	address[] lenderArr;
-	uint[] amtArr;
 	function addBorrowerLock(
 		address	borrower,
 		address token, 	
@@ -184,14 +177,16 @@ contract Spot is DSMath{
 		address lender,
 		uint 	x1Amount
 	) internal {
-		lenderArr.push(lender);
-		amtArr.push(x1Amount);
 		borrowers.push(borrower);
 		tokens.push(token);
 		amountEther.push(ethAmount);
+		createdAt.push(now);
+		address[] memory lenderArr = new address[](1);
+		uint[] memory amtArr = new uint[](1);
+		lenderArr[0] = lender;
+		amtArr[0] = x1Amount;
 		lenders.push(lenderArr);
-		amounts.push(amtArr);
-		createdAt.push(now);			
+		amounts.push(amtArr);			
 	}
 
 	function addLender(
@@ -207,13 +202,5 @@ contract Spot is DSMath{
 			lenders[borrTokIdx].push(lender);
 			amounts[borrTokIdx].push(x1Amount);
 		}
-	}
-
-	function deleteLender(
-		uint 	borrTokIdx,
-		uint 	lIdx
-	) internal {
-		delete lenders[borrTokIdx][lIdx];
-		delete amounts[borrTokIdx][lIdx];
 	}
 }
