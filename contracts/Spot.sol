@@ -5,12 +5,10 @@ import "./math.sol";
 
 contract Spot is DSMath{
 	address[]	borrowers;
-	uint 		public borrLength;
 	address[] 	tokens;
 	uint[]		amountEther; 
 	address[][]	lenders;
 	uint[][]	amounts;
-	uint[] 		lendLength;
 	uint[] 		createdAt;
 
 	event Log(uint a);
@@ -33,12 +31,6 @@ contract Spot is DSMath{
 	function getAmount(uint idx, uint idx2) public view returns (uint) {
 		return amounts[idx][idx2];
 	}
-	function getBorrowersLength() public view returns (uint) {
-		return borrLength;
-	}
-	function getLendLength(uint idx) public view returns (uint) {
-		return lendLength[idx];
-	}	
 
 	function Lock(
 		address	borrower,
@@ -87,29 +79,29 @@ contract Spot is DSMath{
 		// );
 	}
 	
-	function BuyToCover(
-		uint borrTokIdx, 
-		uint amount,
-		uint rate,		// percent 	(100)
-		uint fee,		// basis 	(10000)
-		uint margin		// basis	(10000)
-	) public {
-		for (uint i=0; i<lendLength[borrTokIdx]; i++) {
-			if(amount >= amounts[borrTokIdx][i]) {
-				// TODO: Transfer to lender amounts[borrTokIdx][i] 
-				deleteLender(borrTokIdx, i);
-			}
-			else {
-				// TODO: Transfer to lender amount
-				amounts[borrTokIdx][i] -= amount;
-			}
-		}
-		if (lendLength[borrTokIdx] == 0) {
-			deleteBorrowerLock(borrTokIdx);
-		}
-		amountEther[borrTokIdx] -= amount*rate*(fee + margin)/1000000;
-		// TODO: Transfer funds to trader
-	}
+	// function BuyToCover(
+	// 	uint borrTokIdx, 
+	// 	uint amount,
+	// 	uint rate,		// percent 	(100)
+	// 	uint fee,		// basis 	(10000)
+	// 	uint margin		// basis	(10000)
+	// ) public {
+	// 	for (uint i=0; i<lendLength[borrTokIdx]; i++) {
+	// 		if(amount >= amounts[borrTokIdx][i]) {
+	// 			// TODO: Transfer to lender amounts[borrTokIdx][i] 
+	// 			deleteLender(borrTokIdx, i);
+	// 		}
+	// 		else {
+	// 			// TODO: Transfer to lender amount
+	// 			amounts[borrTokIdx][i] -= amount;
+	// 		}
+	// 	}
+	// 	if (lendLength[borrTokIdx] == 0) {
+	// 		deleteBorrowerLock(borrTokIdx);
+	// 	}
+	// 	amountEther[borrTokIdx] -= amount*rate*(fee + margin)/1000000;
+	// 	// TODO: Transfer funds to trader
+	// }
 
 	event Swapped();
 	function Swap(
@@ -159,7 +151,12 @@ contract Spot is DSMath{
 		uint[] 		amts
 	) public {
 		for(uint i=0; i<borrTokIdx.length; i++){
-			deleteLender(borrTokIdx[i], lenderIdx[i]);
+			if (amts[i] < amounts[borrTokIdx[i]][lenderIdx[i]]) {
+				amounts[borrTokIdx[i]][lenderIdx[i]] -= amts[i];
+			}
+			else {
+				deleteLender(borrTokIdx[i], lenderIdx[i]);
+			}
 			// TODO: Transfer funds to lender & borrower
 		}
 	}
@@ -189,25 +186,12 @@ contract Spot is DSMath{
 	) internal {
 		lenderArr.push(lender);
 		amtArr.push(x1Amount);
-		if (borrowers.length > borrLength) {
-			borrowers[borrLength] = borrower;
-			tokens[borrLength] = token;
-			amountEther[borrLength] = ethAmount;
-			lenders[borrLength] = lenderArr;
-			amounts[borrLength] = amtArr;
-			lendLength[borrLength] = 1;
-			createdAt[borrLength] = now;
-		}
-		else {
-			borrowers.push(borrower);
-			tokens.push(token);
-			amountEther.push(ethAmount);
-			lenders.push(lenderArr);
-			amounts.push(amtArr);
-			lendLength.push(1);
-			createdAt.push(now);			
-		}
-		borrLength += 1;
+		borrowers.push(borrower);
+		tokens.push(token);
+		amountEther.push(ethAmount);
+		lenders.push(lenderArr);
+		amounts.push(amtArr);
+		createdAt.push(now);			
 	}
 
 	function addLender(
@@ -220,15 +204,8 @@ contract Spot is DSMath{
 			amounts[borrTokIdx][uint(lenderIdx)] += x1Amount;
 		}
 		else {
-			if (lenders[borrTokIdx].length > lendLength[borrTokIdx]) {
-				lenders[borrTokIdx][lendLength[borrTokIdx]] = lender;
-				amounts[borrTokIdx][lendLength[borrTokIdx]] = x1Amount;
-			}
-			else {
-				lenders[borrTokIdx].push(lender);
-				amounts[borrTokIdx].push(x1Amount);
-			}
-			lendLength[borrTokIdx] += 1;
+			lenders[borrTokIdx].push(lender);
+			amounts[borrTokIdx].push(x1Amount);
 		}
 	}
 
@@ -236,26 +213,7 @@ contract Spot is DSMath{
 		uint 	borrTokIdx,
 		uint 	lIdx
 	) internal {
-		uint lastIdx = lendLength[borrTokIdx]-1;
-		lenders[borrTokIdx][lIdx] = lenders[borrTokIdx][lastIdx];
-		amounts[borrTokIdx][lIdx] = amounts[borrTokIdx][lastIdx];
-		lendLength[borrTokIdx] -= 1;
-		if(lendLength[borrTokIdx] == 0) {
-			deleteBorrowerLock(borrTokIdx);
-		}
-	}
-
-	function deleteBorrowerLock(
-		uint 	borrTokIdx
-	) internal {
-		uint lastIdx = borrLength-1;
-		borrowers[borrTokIdx] = borrowers[lastIdx];
-		tokens[borrTokIdx] = tokens[lastIdx];
-		amountEther[borrTokIdx] = amountEther[lastIdx];
-		lenders[borrTokIdx] = lenders[lastIdx];
-		amounts[borrTokIdx] = amounts[lastIdx];
-		lendLength[borrTokIdx] = lendLength[lastIdx];
-		createdAt[borrTokIdx] = createdAt[lastIdx];
-		borrLength -= 1;
+		delete lenders[borrTokIdx][lIdx];
+		delete amounts[borrTokIdx][lIdx];
 	}
 }
