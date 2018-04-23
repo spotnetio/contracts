@@ -15,9 +15,6 @@ contract Spot is DSMath{
 
 	event Log(uint a);
 
-	function test() public view returns (uint) {
-		return 21;
-	}
 	function getTraders() public view returns (address[]) {
 		return borrowers;
 	}
@@ -33,8 +30,14 @@ contract Spot is DSMath{
 	function getAmounts(uint idx) public view returns (uint[]) {
 		return amounts[idx];
 	}	
+	function getAmount(uint idx, uint idx2) public view returns (uint) {
+		return amounts[idx][idx2];
+	}
 	function getBorrowersLength() public view returns (uint) {
-		return borrowers.length;
+		return borrLength;
+	}
+	function getLendLength(uint idx) public view returns (uint) {
+		return lendLength[idx];
 	}	
 
 	function Lock(
@@ -108,55 +111,57 @@ contract Spot is DSMath{
 		// TODO: Transfer funds to trader
 	}
 
+	event Swapped();
 	function Swap(
 		uint[]		borrTokIdx,
 		uint[]		lenderIdx,
-		address[]	newLenders,
+		address[] 	newLenders,
 		int[]		newLendersIdx,
 		uint[] 		amts
 	) public {
 		for (uint i=0; i<borrTokIdx.length; i++) {
 			for (uint j=0; j<newLenders.length; j++) {
-				uint amt = amounts[borrTokIdx[i]][lenderIdx[i]];
-				if (amts[j] >= amt) {
-					lenders[borrTokIdx[i]][lenderIdx[i]] = newLenders[j];
-					amts[j] -= amt;
+				uint lockedAmt = amounts[borrTokIdx[i]][lenderIdx[i]];
+				if (amts[j] >= lockedAmt) {				
+					addLender(
+						borrTokIdx[i],
+						newLenders[j],
+						lockedAmt,
+						newLendersIdx[j]
+					);
+					deleteLender(
+						borrTokIdx[i],
+						lenderIdx[i]
+					);	
+					amts[j] -= lockedAmt;
 					// TODO: Transfer X1 
 					break;
 				}
 				else {
-					amounts[borrTokIdx[i]][lenderIdx[i]] -= amts[j];
 					addLender(
 						borrTokIdx[i],
 						newLenders[j],
 						amts[j],
 						newLendersIdx[j]
 					);
-					amts[j] = 0;
+					amounts[borrTokIdx[i]][lenderIdx[i]] -= amts[j];
+					delete amts[j];
 					// TODO: Transfer X1 
 				}
 			}
 		}
+		Swapped();
 	}
 
 	function Recall(
 		uint[]		borrTokIdx,
 		uint[]		lenderIdx,
-		uint 		amount
+		uint[] 		amts
 	) public {
 		for(uint i=0; i<borrTokIdx.length; i++){
-			for(uint j=0; j<lenderIdx.length; j++){
-				// TODO: Save info about funds to transfer				
-				if (amount < amounts[borrTokIdx[i]][lenderIdx[j]]) {
-					amounts[borrTokIdx[i]][lenderIdx[j]] -= amount;
-				}
-				else {
-					deleteLender(borrTokIdx[i], lenderIdx[j]);
-				}
-				amount -= amounts[borrTokIdx[i]][lenderIdx[j]];
-			}
+			deleteLender(borrTokIdx[i], lenderIdx[i]);
+			// TODO: Transfer funds to lender & borrower
 		}
-		// TODO: Transfer funds to lender
 	}
 
 	// function MarginCall(
