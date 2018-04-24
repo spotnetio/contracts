@@ -79,29 +79,25 @@ contract Spot is DSMath{
 		// );
 	}
 	
-	// function BuyToCover(
-	// 	uint borrTokIdx, 
-	// 	uint amount,
-	// 	uint rate,		// percent 	(100)
-	// 	uint fee,		// basis 	(10000)
-	// 	uint margin		// basis	(10000)
-	// ) public {
-	// 	for (uint i=0; i<lendLength[borrTokIdx]; i++) {
-	// 		if(amount >= amounts[borrTokIdx][i]) {
-	// 			// TODO: Transfer to lender amounts[borrTokIdx][i] 
-	// 			amounts[borrTokIdx][i] = 0;
-	// 		}
-	// 		else {
-	// 			// TODO: Transfer to lender amount
-	// 			amounts[borrTokIdx][i] -= amount;
-	// 		}
-	// 	}
-	// 	if (lendLength[borrTokIdx] == 0) {
-	// 		deleteBorrowerLock(borrTokIdx);
-	// 	}
-	// 	amountEther[borrTokIdx] -= amount*rate*(fee + margin)/1000000;
-	// 	// TODO: Transfer funds to trader
-	// }
+	function BuyToCover(
+		uint 	borrTokIdx,
+		uint[]	lndrs,
+		uint[] 	amts,
+		uint 	x1Total,
+		uint 	rate,		// percent 	(100)
+		uint 	fee,		// basis 	(10000)
+		uint 	margin		// basis	(10000)
+	) public {
+		for (uint i=0; i<lndrs.length; i++) {
+			amounts[borrTokIdx][lndrs[i]] -= min(
+				amounts[borrTokIdx][lndrs[i]],
+				amts[i]
+			);
+			// TODO: Transfer funds to lender
+		}
+		amountEther[borrTokIdx] -= x1Total*rate*(fee + margin)/1000000;
+		// TODO: Transfer funds to trader
+	}
 
 	event Swapped();
 	function Swap(
