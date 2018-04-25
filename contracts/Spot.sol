@@ -11,6 +11,8 @@ contract Spot is DSMath{
 	uint[][]	amounts;
 	uint[] 		createdAt;
 
+	address 	public WEth;
+
 	event Log(uint a);
 
 	function getTraders() public view returns (address[]) {
@@ -30,6 +32,10 @@ contract Spot is DSMath{
 	}	
 	function getAmount(uint idx, uint idx2) public view returns (uint) {
 		return amounts[idx][idx2];
+	}
+
+	function Spot(address weth) public {
+		WEth = weth;
 	}
 
 	function Lock(
@@ -65,7 +71,7 @@ contract Spot is DSMath{
 			);
 		}
 
-		// Transfer WETH from borrower to this		
+		// // Transfer WETH from borrower to this		
 		// ERC20(WEth).transferFrom(
 		// 	borrower, 
 		// 	this,

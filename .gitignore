@@ -1,2 +1,5 @@
 .DS_Store
-build/contracts
+#build/contracts
+node_modules
+package-lock.json
+secrets.js
