@@ -1,0 +1,26 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "Spotnet contracts",
+  "main": "scripts.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "truffle-hdwallet-provider": "0.0.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spotnetio/contracts.git"
+  },
+  "author": "Marat Bunyatov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/spotnetio/contracts/issues"
+  },
+  "homepage": "https://github.com/spotnetio/contracts#readme"
+}
