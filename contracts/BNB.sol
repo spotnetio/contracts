@@ -3,12 +3,12 @@ pragma solidity ^0.4.19;
 import "./ERC20.sol";
 import "./math.sol";
 
-contract X1Token is ERC20, DSMath {
+contract BNB is ERC20, DSMath {
     uint256                                            _supply;
     mapping (address => uint256)                       _balances;
     mapping (address => mapping (address => uint256))  _approvals;
 
-    function X1Token(uint supply) public {
+    function BNB(uint supply) public {
         _balances[msg.sender] = supply;
         _supply = supply;
     }

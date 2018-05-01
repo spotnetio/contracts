@@ -3,12 +3,12 @@ pragma solidity ^0.4.19;
 import "./ERC20.sol";
 import "./math.sol";
 
-contract VenToken is ERC20, DSMath {
+contract ZeroX is ERC20, DSMath {
     uint256                                            _supply;
     mapping (address => uint256)                       _balances;
     mapping (address => mapping (address => uint256))  _approvals;
 
-    function VenToken(uint supply) public {
+    function ZeroX(uint supply) public {
         _balances[msg.sender] = supply;
         _supply = supply;
     }
