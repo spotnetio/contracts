@@ -1,6 +1,9 @@
 var HDWalletProvider = require("truffle-hdwallet-provider");
 var config = require("./secrets.js").config;
 
+// migrate --compile-all --reset
+// Spot.deployed().then(function(i){s=i;})
+
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // to customize your Truffle configuration!

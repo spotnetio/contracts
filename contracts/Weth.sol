@@ -3,12 +3,12 @@ pragma solidity ^0.4.19;
 import "./ERC20.sol";
 import "./math.sol";
 
-contract WethToken is ERC20, DSMath {
+contract Weth is ERC20, DSMath {
     uint256                                            _supply;
     mapping (address => uint256)                       _balances;
     mapping (address => mapping (address => uint256))  _approvals;
 
-    function WethToken(uint supply) public {
+    function Weth(uint supply) public {
         _balances[msg.sender] = supply;
         _supply = supply;
     }
