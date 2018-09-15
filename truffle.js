@@ -19,7 +19,7 @@ module.exports = {
       host: "localhost",
       port: 9545,
       network_id: "*",
-      network_id: "4447",
+      // network_id: "4447",
       // gas: 2000000,
     },
     private: {
@@ -28,11 +28,11 @@ module.exports = {
       network_id: "4224",
       gas: 4700000
     },
-    ropsten: {
-      provider: new HDWalletProvider(config["mnemonic"]["ropsten"], "https://ropsten.infura.io/"+config["infura_apikey"]),
-      network_id: 3,
-      gas: 2000000,//4712388,
-      // gasPrice: 50000000000
-    },
+    // ropsten: {
+    //   provider: new HDWalletProvider(config["mnemonic"]["ropsten"], "https://ropsten.infura.io/"+config["infura_apikey"]),
+    //   network_id: 3,
+    //   gas: 2000000,//4712388,
+    //   // gasPrice: 50000000000
+    // },
   }
 };

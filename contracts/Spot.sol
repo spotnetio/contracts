@@ -21,13 +21,13 @@ contract Spot is DSMath{
 	function getTokens() public view returns (address[]) {
 		return tokens;
 	}
-	function getTradersAmounts() public view returns (uint[]) {
+	function getTradersAmounts() public view returns (uint[]) { // amounts are in ether
 		return amountEther;
 	}	
 	function getLenders(uint idx) public view returns (address[]) {
 		return lenders[idx];
 	}	
-	function getAmounts(uint idx) public view returns (uint[]) {
+	function getAmounts(uint idx) public view returns (uint[]) { // lender amounts (X1)
 		return amounts[idx];
 	}	
 	function getAmount(uint idx, uint idx2) public view returns (uint) {
@@ -40,7 +40,7 @@ contract Spot is DSMath{
 
 	function Lock(
 		address	borrower,
-		int 	borrTokIdx,
+		int 	borrTokIdx,	// -1 means new borrower
 		address token, 	
 		uint	x1Amount,
 		address lender,
